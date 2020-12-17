@@ -20,9 +20,9 @@ int64_t part2()
 
 int main()
 {
-    fmt::print("Advent of Code 2019 - Day 01\n");
+    fmt::print("Advent of Code 2019 - Day XX\n");
 
-    std::string input_path = "days/day01/puzzle.in";
+    std::string input_path = "days/dayXX/puzzle.in";
 
     std::ifstream ifs{input_path};
 
