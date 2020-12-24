@@ -16,6 +16,7 @@ function(add_day)
         PRIVATE $<$<CXX_COMPILER_ID:MSVC>:
                 -wd4201
                 -wd4996
+                -wd28278
                 -wd4459 # TODO range-v3 error
                 -wd4702>) # TODO range-v3 error
 
@@ -40,6 +41,7 @@ function(add_day)
         PRIVATE $<$<CXX_COMPILER_ID:MSVC>:
                 -wd4201
                 -wd4996
+                -wd28278
                 -wd4459 # TODO range-v3 error
                 -wd4702 # TODO range-v3 error
                 -wd6330>) # TODO catch2 error
