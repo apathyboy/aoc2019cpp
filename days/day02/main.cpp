@@ -38,6 +38,22 @@ int64_t compute(std::vector<int> program, int noun, int verb)
     return compute(std::move(program));
 }
 
+auto compute_with_noun_and_verb(const std::vector<int>& program)
+{
+    return [&program](auto&& p) {
+        auto [noun, verb] = p;
+        return std::make_tuple(noun, verb, compute(program, noun, verb));
+    };
+}
+
+auto keep_output_match(int keep_result)
+{
+    return [keep_result](const auto& t) {
+        auto [_, __, result] = t;
+        return result == keep_result;
+    };
+}
+
 int64_t part1(std::vector<int> program)
 {
     return compute(program, 12, 2);
@@ -46,14 +62,8 @@ int64_t part1(std::vector<int> program)
 int64_t part2(std::vector<int> program)
 {
     auto matches = rv::cartesian_product(rv::iota(0, 99), rv::iota(0, 99))
-                   | rv::transform([&program](auto&& p) {
-                         auto [noun, verb] = p;
-                         return std::make_tuple(noun, verb, compute(program, noun, verb));
-                     })
-                   | rv::filter([](const auto& t) {
-                         auto [_, __, result] = t;
-                         return result == 19690720;
-                     });
+                   | rv::transform(compute_with_noun_and_verb(program))
+                   | rv::filter(keep_output_match(19690720));
 
     auto [noun, verb, _] = rs::front(matches);
 
