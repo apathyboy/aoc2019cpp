@@ -25,7 +25,9 @@ find_package(
 add_library(
     aoc2019
     include/aoc2019/aoc2019.hpp
-    src/aoc2019.cpp)
+    include/aoc2019/intcode.hpp
+    src/aoc2019.cpp
+    src/intcode.cpp)
 
 add_library(
     esb::aoc2019
@@ -47,6 +49,8 @@ target_compile_options(
            -WX
            -permissive-
            -analyze>)
+
+target_link_libraries(aoc2019 PRIVATE range-v3::meta)
 
 include(CTest)
 include(Catch)

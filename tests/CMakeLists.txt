@@ -1,4 +1,7 @@
-add_executable(aoc2019-tests main.cpp)
+add_executable(
+    aoc2019-tests
+    intcode.cpp
+    main.cpp)
 
 target_link_libraries(
     aoc2019-tests
