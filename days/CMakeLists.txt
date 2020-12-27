@@ -55,4 +55,5 @@ endfunction()
 # cmake-format: off
 add_day(NAME day01)
 add_day(NAME day02)
+add_day(NAME day03 LIBS glm)
 # cmake-format: on
