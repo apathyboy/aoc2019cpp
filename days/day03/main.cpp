@@ -21,79 +21,95 @@ const std::map<char, glm::ivec2> DIRECTIONS{
     {'U', {0, 1}},
     {'D', {0, -1}}};
 
+auto path_to_offset = [](auto&& s) {
+    return std::stoi(s | rv::tail | rs::to<std::string>) * DIRECTIONS.at(rs::front(s));
+};
+
+auto next_segment(auto& prev)
+{
+    return [&prev](auto v) {
+        line_segment l{prev.b, prev.b + v};
+        prev = l;
+        return l;
+    };
+}
+
 auto read_input(std::istream& input)
 {
-    return rs::getlines(input) | rv::transform([](auto&& s) {
-               line_segment prev = {};
-               return s | rv::split(',') | rv::transform([](auto&& s) {
-                          char dir = rs::front(s);
-                          int  amt = std::stoi(s | rv::tail | rs::to<std::string>);
-                          return amt * DIRECTIONS.at(dir);
-                      })
-                      | rv::transform([&prev](auto v) {
-                            line_segment l{prev.b, prev.b + v};
-                            prev = l;
-                            return l;
-                        })
-                      | rs ::to_vector;
-           })
-           | rs::to_vector;
+    // clang-format off
+    return rs::getlines(input) 
+        | rv::transform([](auto&& s) {
+            line_segment prev = {};
+            return s | rv::split(',') 
+                | rv::transform(path_to_offset)
+                | rv::transform(next_segment(prev)) | rs ::to_vector; }) | rs::to_vector;
+    // clang-format on
 }
 
-
-std::optional<glm::ivec2>
-calculate_intersection(const line_segment& l1, const line_segment& l2)
+bool is_between(int a, int b, int check)
 {
-    std::optional<glm::ivec2> intersection;
-
-    // line1 is vertical
-    if (l1.a.x == l1.b.x) {
-        // is line1 x between x of line2 endpoints?
-        if (l1.a.x <= std::max(l2.a.x, l2.b.x) && l1.a.x >= std::min(l2.a.x, l2.b.x)) {
-            // and is line2 y between y of line1 endpoints?
-            if (l2.a.y <= std::max(l1.a.y, l1.b.y) && l2.a.y >= std::min(l1.a.y, l1.b.y)) {
-                // then intersected at line1.a.x, line2.a.y
-                intersection = {l1.a.x, l2.a.y};
-            }
-        }
-    }
-    // else it is horizontal
-    else {
-        // is line1 y between y of line2 endpoints
-        if (l1.a.y <= std::max(l2.a.y, l2.b.y) && l1.a.y >= std::min(l2.a.y, l2.b.y)) {
-            // and is line2 x between x of line1 endpoints
-            if (l2.a.x <= std::max(l1.a.x, l1.b.x) && l2.a.x >= std::min(l1.a.x, l1.b.x)) {
-                // then intersected at line2.a.x, line1.a.y
-                intersection = {l2.a.x, l1.a.y};
-            }
-        }
-    }
-
-    return intersection;
+    return check <= std::max(a, b) && check >= std::min(a, b);
 }
 
-int64_t manhattan(const glm::ivec2& p)
+bool on_segment(const line_segment& ls, const glm::ivec2& p)
 {
-    return p.x + p.y;
+    return is_between(ls.a.x, ls.b.x, p.x) && is_between(ls.a.y, ls.b.y, p.y);
+}
+
+std::optional<glm::ivec2> intersect(const line_segment& l1, const line_segment& l2)
+{
+    if (is_between(l2.a.x, l2.b.x, l1.a.x) && is_between(l1.a.y, l1.b.y, l2.a.y)) {
+        return glm::ivec2{l1.a.x, l2.a.y};
+    }
+    else if (is_between(l2.a.y, l2.b.y, l1.a.y) && is_between(l1.a.x, l1.b.x, l2.a.x)) {
+        return glm::ivec2{l2.a.x, l1.a.y};
+    }
+
+    return std::nullopt;
+}
+
+int64_t manhattan(const glm::ivec2& a, const glm::ivec2& b)
+{
+    return std::abs(b.x - a.x) + std::abs(b.y - a.y);
+}
+
+int64_t path_distance(const std::vector<line_segment>& wire, const glm::ivec2& p)
+{
+    auto path    = wire | rv::take_while([&p](const auto& ls) { return !on_segment(ls, p); });
+    auto lengths = path | rv::transform([](auto&& ls) { return manhattan(ls.a, ls.b); });
+
+    return rs::accumulate(lengths, int64_t{0}) + manhattan((path | rv::reverse).begin()->b, p);
 }
 
 int64_t part1(std::vector<line_segment> wire1, std::vector<line_segment> wire2)
 {
-    auto intersections = rv::cartesian_product(wire1, wire2) | rv::transform([](auto&& p) {
-                             const auto& [s1, s2] = p;
-                             return calculate_intersection(s1, s2);
-                         })
-                         | rv::filter([](const auto& p) {
-                               return p.has_value() && p.value() != glm::ivec2{0, 0};
-                           })
-                         | rv::transform([](auto&& p) { return manhattan(p.value()); });
+    // clang-format off
+    auto intersections = rv::cartesian_product(wire1, wire2) 
+        | rv::transform([](auto&& p) {
+            return intersect(std::get<0>(p), std::get<1>(p)); })
+        | rv::filter([](const auto& p) {
+            return p.has_value() && p.value() != glm::ivec2{0, 0}; })
+        | rv::transform([](auto&& p) { 
+            glm::ivec2 origin{0, 0}; 
+            return manhattan(origin,p.value()); });
+    // clang-format on
 
     return rs::min(intersections);
 }
 
-int64_t part2()
+int64_t part2(std::vector<line_segment> wire1, std::vector<line_segment> wire2)
 {
-    return 0;
+    // clang-format off
+    auto intersections = rv::cartesian_product(wire1, wire2) 
+        | rv::transform([](auto&& p) {
+            return intersect(std::get<0>(p), std::get<1>(p)); })
+        | rv::filter([](const auto& p) {
+            return p.has_value() && p.value() != glm::ivec2{0, 0}; })
+        | rv::transform([&wire1, &wire2](auto&& p) {
+            return path_distance(wire1, p.value()) + path_distance(wire2, p.value()); });
+    // clang-format on
+
+    return rs::min(intersections);
 }
 
 #ifndef UNIT_TESTING
@@ -107,7 +123,7 @@ int main()
     auto input = read_input(ifs);
 
     fmt::print("Part 1 Solution: {}\n", part1(input[0], input[1]));
-    fmt::print("Part 2 Solution: {}\n", part2());
+    fmt::print("Part 2 Solution: {}\n", part2(input[0], input[1]));
 
     return 0;
 }
@@ -148,9 +164,12 @@ TEST_CASE("Can solve part 2 example")
 {
     std::stringstream ss;
 
-    ss << R"()";
+    ss << R"(R8,U5,L5,D3
+U7,R6,D4,L4)";
 
-    REQUIRE(0 == part2());
+    auto input = read_input(ss);
+
+    REQUIRE(30 == part2(input[0], input[1]));
 }
 
 #endif
